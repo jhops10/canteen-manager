@@ -2,8 +2,10 @@ package com.jhops10.canteen_manager.controller;
 
 import com.jhops10.canteen_manager.dto.customer.CustomerRequestDTO;
 import com.jhops10.canteen_manager.dto.customer.CustomerResponseDTO;
+import com.jhops10.canteen_manager.dto.customer.CustomerSummaryDTO;
 import com.jhops10.canteen_manager.dto.customer.CustomerUpdateDTO;
 import com.jhops10.canteen_manager.service.CustomerService;
+import com.jhops10.canteen_manager.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import java.util.List;
 public class CustomerController {
 
     private final CustomerService customerService;
+    private final OrderService orderService;
 
     @PostMapping
     public ResponseEntity<CustomerResponseDTO> create(@RequestBody CustomerRequestDTO requestDTO) {
@@ -36,6 +39,12 @@ public class CustomerController {
         return ResponseEntity.ok().body(customer);
     }
 
+    @GetMapping("/{id}/summary")
+    public ResponseEntity<CustomerSummaryDTO> getCustomerSummary(@PathVariable("id") Long id) {
+        CustomerSummaryDTO summary = customerService.getCustomerSummary(id);
+        return ResponseEntity.ok().body(summary);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponseDTO> update(@PathVariable("id") Long id, @RequestBody CustomerUpdateDTO updateDTO) {
         CustomerResponseDTO updated = customerService.update(id, updateDTO);
@@ -45,6 +54,12 @@ public class CustomerController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         customerService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/orders")
+    public ResponseEntity<Void> delteAllOrdersByCustomer(@PathVariable("id") Long customerId) {
+        orderService.deleteOrdersByCustomerId(customerId);
         return ResponseEntity.noContent().build();
     }
 }

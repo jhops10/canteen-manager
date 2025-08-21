@@ -57,4 +57,13 @@ public class OrderService {
         }
         orderRepository.deleteById(id);
     }
+
+    public void deleteOrdersByCustomerId(Long customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente com id " + customerId + " não encontrado."));
+
+        List<Order> orders = orderRepository.findByCustomerId(customerId);
+
+        orderRepository.deleteAll(orders);
+    }
 }
