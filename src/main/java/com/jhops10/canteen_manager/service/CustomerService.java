@@ -2,6 +2,7 @@ package com.jhops10.canteen_manager.service;
 
 import com.jhops10.canteen_manager.dto.customer.CustomerRequestDTO;
 import com.jhops10.canteen_manager.dto.customer.CustomerResponseDTO;
+import com.jhops10.canteen_manager.dto.customer.CustomerSummaryDTO;
 import com.jhops10.canteen_manager.dto.customer.CustomerUpdateDTO;
 import com.jhops10.canteen_manager.exception.CustomerNotFoundException;
 import com.jhops10.canteen_manager.model.Customer;
@@ -50,5 +51,12 @@ public class CustomerService {
             throw new CustomerNotFoundException("Cliente com o id" + id + " não encontrado.");
         }
         customerRepository.deleteById(id);
+    }
+
+    public CustomerSummaryDTO getCustomerSummary(Long id) {
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente com o id" + id + " não encontrado."));
+
+        return CustomerSummaryDTO.fromEntity(customer);
     }
 }
