@@ -2,6 +2,7 @@ package com.jhops10.canteen_manager.service;
 
 import com.jhops10.canteen_manager.dto.product.ProductRequestDTO;
 import com.jhops10.canteen_manager.dto.product.ProductResponseDTO;
+import com.jhops10.canteen_manager.exception.ProductNotFoundException;
 import com.jhops10.canteen_manager.model.Product;
 import com.jhops10.canteen_manager.repository.ProductRepository;
 import com.jhops10.canteen_manager.util.ProductFactory;
@@ -14,8 +15,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -91,6 +94,32 @@ class ProductServiceTest {
                 .isEmpty();
 
         verify(productRepository).findAll();
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void getById_shouldReturnProduct_whenIdExists() {
+        when(productRepository.findById(defaultId)).thenReturn(Optional.of(defaultProduct));
+
+        ProductResponseDTO sut = productService.getById(defaultId);
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(expectedProductResponseDTO());
+
+        verify(productRepository).findById(defaultId);
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void getById_shouldThrowException_whenIdDoNotExist() {
+        when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getById(nonExistingId))
+                .isInstanceOf(ProductNotFoundException.class);
+
+        verify(productRepository).findById(nonExistingId);
         verifyNoMoreInteractions(productRepository);
     }
 }
