@@ -13,6 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +30,7 @@ class ProductServiceTest {
     private ProductRepository productRepository;
 
     private final Long defaultId = 1L;
+    private final Long nonExistingId = 9999999L;
     private Product defaultProduct;
 
     @BeforeEach
@@ -59,5 +62,35 @@ class ProductServiceTest {
         verify(productRepository).save(any(Product.class));
         verifyNoMoreInteractions(productRepository);
 
+    }
+
+    @Test
+    void getAll_shouldReturnAllProducts_whenProductsExist() {
+        when(productRepository.findAll()).thenReturn(List.of(defaultProduct));
+
+        List<ProductResponseDTO> sut = productService.getAll();
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactly(expectedProductResponseDTO());
+
+
+        verify(productRepository).findAll();
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void getAll_shouldReturnEmptyList_whenProductsProductsDoNotExist() {
+        when(productRepository.findAll()).thenReturn(List.of());
+
+        List<ProductResponseDTO> sut = productService.getAll();
+
+        assertThat(sut)
+                .isNotNull()
+                .isEmpty();
+
+        verify(productRepository).findAll();
+        verifyNoMoreInteractions(productRepository);
     }
 }
