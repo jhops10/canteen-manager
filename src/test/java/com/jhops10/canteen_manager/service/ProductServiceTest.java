@@ -154,7 +154,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void updateProduct_shouldThrowException_whenDoesNotExist() {
+    void updateProduct_shouldThrowException_whenIdDoesNotExist() {
         ProductUpdateDTO updateDTO = Instancio.of(ProductUpdateDTO.class).create();
 
         when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
@@ -163,6 +163,28 @@ class ProductServiceTest {
                 .isInstanceOf(ProductNotFoundException.class);
 
         verify(productRepository).findById(nonExistingId);
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void deleteProduct_shouldDeleteProduct_whenIdExists() {
+        when(productRepository.existsById(defaultId)).thenReturn(true);
+
+        productService.delete(defaultId);
+
+        verify(productRepository).existsById(defaultId);
+        verify(productRepository).deleteById(defaultId);
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void deleteProduct_shouldThrowException_whenIdDoesNotExist() {
+        when(productRepository.existsById(nonExistingId)).thenReturn(false);
+
+        assertThatThrownBy(() -> productService.delete(nonExistingId))
+                .isInstanceOf(ProductNotFoundException.class);
+
+        verify(productRepository).existsById(nonExistingId);
         verifyNoMoreInteractions(productRepository);
     }
 }
