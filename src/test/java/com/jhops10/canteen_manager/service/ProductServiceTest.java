@@ -2,10 +2,12 @@ package com.jhops10.canteen_manager.service;
 
 import com.jhops10.canteen_manager.dto.product.ProductRequestDTO;
 import com.jhops10.canteen_manager.dto.product.ProductResponseDTO;
+import com.jhops10.canteen_manager.dto.product.ProductUpdateDTO;
 import com.jhops10.canteen_manager.exception.ProductNotFoundException;
 import com.jhops10.canteen_manager.model.Product;
 import com.jhops10.canteen_manager.repository.ProductRepository;
 import com.jhops10.canteen_manager.util.ProductFactory;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -117,6 +119,47 @@ class ProductServiceTest {
         when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.getById(nonExistingId))
+                .isInstanceOf(ProductNotFoundException.class);
+
+        verify(productRepository).findById(nonExistingId);
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void updateProduct_shouldReturnUpdatedProduct_whenIdExists() {
+        ProductUpdateDTO updateDTO = Instancio.of(ProductUpdateDTO.class).create();
+        Product updatedProduct = ProductFactory.createDefaultProduct(defaultId);
+
+        when(productRepository.findById(defaultId)).thenReturn(Optional.of(defaultProduct));
+        when(productRepository.save(any(Product.class))).thenReturn(updatedProduct);
+
+        ProductResponseDTO sut = productService.update(defaultId, updateDTO);
+
+        assertThat(sut)
+                .isNotNull()
+                .extracting(
+                        ProductResponseDTO::id,
+                        ProductResponseDTO::productName,
+                        ProductResponseDTO::unitValue
+                )
+                .containsExactly(
+                        updatedProduct.getId(),
+                        updatedProduct.getProductName(),
+                        updatedProduct.getUnitValue()
+                );
+
+        verify(productRepository).findById(defaultId);
+        verify(productRepository).save(defaultProduct);
+        verifyNoMoreInteractions(productRepository);
+    }
+
+    @Test
+    void updateProduct_shouldThrowException_whenDoesNotExist() {
+        ProductUpdateDTO updateDTO = Instancio.of(ProductUpdateDTO.class).create();
+
+        when(productRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.update(nonExistingId, updateDTO))
                 .isInstanceOf(ProductNotFoundException.class);
 
         verify(productRepository).findById(nonExistingId);
