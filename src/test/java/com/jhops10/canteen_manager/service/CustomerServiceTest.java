@@ -1,0 +1,192 @@
+package com.jhops10.canteen_manager.service;
+
+import com.jhops10.canteen_manager.dto.customer.CustomerRequestDTO;
+import com.jhops10.canteen_manager.dto.customer.CustomerResponseDTO;
+import com.jhops10.canteen_manager.dto.customer.CustomerUpdateDTO;
+import com.jhops10.canteen_manager.dto.order.OrderResponseDTO;
+import com.jhops10.canteen_manager.exception.CustomerNotFoundException;
+import com.jhops10.canteen_manager.model.Customer;
+import com.jhops10.canteen_manager.repository.CustomerRepository;
+import com.jhops10.canteen_manager.util.CustomerFactory;
+import org.instancio.Instancio;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class CustomerServiceTest {
+
+    @InjectMocks
+    private CustomerService customerService;
+
+    @Mock
+    private CustomerRepository customerRepository;
+
+    private final Long defaultId = 1L;
+    private final Long nonExistingId = 9999999L;
+    private Customer defaultCustomer;
+
+    @BeforeEach
+    void setUp() {
+        defaultCustomer = CustomerFactory.createDefaultCustomer(defaultId);
+    }
+
+    private CustomerResponseDTO expectedCustomerResponseDTO() {
+        List<OrderResponseDTO> orders = defaultCustomer.getOrders().stream()
+                .map(OrderResponseDTO::fromEntity)
+                .toList();
+
+        return new CustomerResponseDTO(
+                defaultCustomer.getId(),
+                defaultCustomer.getName(),
+                orders
+        );
+    }
+
+    @Test
+    void createCustomer_shouldReturnCustomer() {
+        CustomerRequestDTO requestDTO = new CustomerRequestDTO(defaultCustomer.getName());
+        when(customerRepository.save(any(Customer.class))).thenReturn(defaultCustomer);
+
+        CustomerResponseDTO sut = customerService.create(requestDTO);
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(expectedCustomerResponseDTO());
+
+        verify(customerRepository).save(any(Customer.class));
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getAll_shouldReturnAllCustomers_whenCustomersExists() {
+        when(customerRepository.findAll()).thenReturn(List.of(defaultCustomer));
+
+        List<CustomerResponseDTO> sut = customerService.getAll();
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactly(expectedCustomerResponseDTO());
+
+        verify(customerRepository).findAll();
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getAll_shouldReturnEmptyList_whenCustomersDoNotExist() {
+        when(customerRepository.findAll()).thenReturn(List.of());
+
+        List<CustomerResponseDTO> sut = customerService.getAll();
+
+        assertThat(sut)
+                .isNotNull()
+                .isEmpty();
+
+        verify(customerRepository).findAll();
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getById_shouldReturnCustomer_whenIdExists() {
+        when(customerRepository.findById(defaultId)).thenReturn(Optional.of(defaultCustomer));
+
+        CustomerResponseDTO sut = customerService.getById(defaultId);
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(expectedCustomerResponseDTO());
+
+        verify(customerRepository).findById(defaultId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getById_shouldThrowException_whenIdDoNotExist() {
+        when(customerRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> customerService.getById(nonExistingId))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository).findById(nonExistingId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void updateCustomer_shouldReturnUpdatedCustomer_whenIdExists() {
+        CustomerUpdateDTO updateDTO = Instancio.of(CustomerUpdateDTO.class).create();
+        Customer updatedCustomer = CustomerFactory.createDefaultCustomer(defaultId);
+
+        when(customerRepository.findById(defaultId)).thenReturn(Optional.of(defaultCustomer));
+        when(customerRepository.save(any(Customer.class))).thenReturn(updatedCustomer);
+
+        CustomerResponseDTO sut = customerService.update(defaultId, updateDTO);
+
+        assertThat(sut)
+                .isNotNull()
+                .extracting(
+                        CustomerResponseDTO::id,
+                        CustomerResponseDTO::name,
+                        CustomerResponseDTO::orders
+                )
+                .containsExactly(
+                        updatedCustomer.getId(),
+                        updatedCustomer.getName(),
+                        updatedCustomer.getOrders()
+                );
+
+        verify(customerRepository).findById(defaultId);
+        verify(customerRepository).save(any(Customer.class));
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void updateCustomer_shouldThrowException_whenIdDoNotExist() {
+        CustomerUpdateDTO updateDTO = Instancio.of(CustomerUpdateDTO.class).create();
+
+        when(customerRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> customerService.update(nonExistingId, updateDTO))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository).findById(nonExistingId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void deleteCustomer_shouldDeleteCustomer_whenIdExists() {
+        when(customerRepository.existsById(defaultId)).thenReturn(true);
+
+        customerService.delete(defaultId);
+
+        verify(customerRepository).existsById(defaultId);
+        verify(customerRepository).deleteById(defaultId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void deleteCustomer_shouldThrowExceptiton_whenIdDoNotExist() {
+        when(customerRepository.existsById(nonExistingId)).thenReturn(false);
+
+        assertThatThrownBy(() -> customerService.delete(nonExistingId))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository).existsById(nonExistingId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+}
