@@ -66,4 +66,33 @@ class CustomerServiceTest {
         verifyNoMoreInteractions(customerRepository);
     }
 
+    @Test
+    void getAll_shouldReturnAllCustomers_whenCustomersExists() {
+        when(customerRepository.findAll()).thenReturn(List.of(defaultCustomer));
+
+        List<CustomerResponseDTO> sut = customerService.getAll();
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactly(expectedCustomerResponseDTO());
+
+        verify(customerRepository).findAll();
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getAll_shouldReturnEmptyList_whenCustomersDoNotExist() {
+        when(customerRepository.findAll()).thenReturn(List.of());
+
+        List<CustomerResponseDTO> sut = customerService.getAll();
+
+        assertThat(sut)
+                .isNotNull()
+                .isEmpty();
+
+        verify(customerRepository).findAll();
+        verifyNoMoreInteractions(customerRepository);
+    }
+
 }
