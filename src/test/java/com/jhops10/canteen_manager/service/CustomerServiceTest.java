@@ -3,6 +3,7 @@ package com.jhops10.canteen_manager.service;
 import com.jhops10.canteen_manager.dto.customer.CustomerRequestDTO;
 import com.jhops10.canteen_manager.dto.customer.CustomerResponseDTO;
 import com.jhops10.canteen_manager.dto.order.OrderResponseDTO;
+import com.jhops10.canteen_manager.exception.CustomerNotFoundException;
 import com.jhops10.canteen_manager.model.Customer;
 import com.jhops10.canteen_manager.repository.CustomerRepository;
 import com.jhops10.canteen_manager.util.CustomerFactory;
@@ -14,8 +15,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -92,6 +95,32 @@ class CustomerServiceTest {
                 .isEmpty();
 
         verify(customerRepository).findAll();
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getById_shouldReturnCustomer_whenIdExists() {
+        when(customerRepository.findById(defaultId)).thenReturn(Optional.of(defaultCustomer));
+
+        CustomerResponseDTO sut = customerService.getById(defaultId);
+
+        assertThat(sut)
+                .isNotNull()
+                .usingRecursiveComparison()
+                .isEqualTo(expectedCustomerResponseDTO());
+
+        verify(customerRepository).findById(defaultId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void getById_shouldThrowException_whenIdDoNotExist() {
+        when(customerRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> customerService.getById(nonExistingId))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository).findById(nonExistingId);
         verifyNoMoreInteractions(customerRepository);
     }
 
