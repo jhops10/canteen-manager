@@ -167,4 +167,26 @@ class CustomerServiceTest {
         verifyNoMoreInteractions(customerRepository);
     }
 
+    @Test
+    void deleteCustomer_shouldDeleteCustomer_whenIdExists() {
+        when(customerRepository.existsById(defaultId)).thenReturn(true);
+
+        customerService.delete(defaultId);
+
+        verify(customerRepository).existsById(defaultId);
+        verify(customerRepository).deleteById(defaultId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void deleteCustomer_shouldThrowExceptiton_whenIdDoNotExist() {
+        when(customerRepository.existsById(nonExistingId)).thenReturn(false);
+
+        assertThatThrownBy(() -> customerService.delete(nonExistingId))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository).existsById(nonExistingId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
 }
