@@ -2,11 +2,13 @@ package com.jhops10.canteen_manager.service;
 
 import com.jhops10.canteen_manager.dto.customer.CustomerRequestDTO;
 import com.jhops10.canteen_manager.dto.customer.CustomerResponseDTO;
+import com.jhops10.canteen_manager.dto.customer.CustomerUpdateDTO;
 import com.jhops10.canteen_manager.dto.order.OrderResponseDTO;
 import com.jhops10.canteen_manager.exception.CustomerNotFoundException;
 import com.jhops10.canteen_manager.model.Customer;
 import com.jhops10.canteen_manager.repository.CustomerRepository;
 import com.jhops10.canteen_manager.util.CustomerFactory;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -118,6 +120,47 @@ class CustomerServiceTest {
         when(customerRepository.findById(nonExistingId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> customerService.getById(nonExistingId))
+                .isInstanceOf(CustomerNotFoundException.class);
+
+        verify(customerRepository).findById(nonExistingId);
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void updateCustomer_shouldReturnUpdatedCustomer_whenIdExists() {
+        CustomerUpdateDTO updateDTO = Instancio.of(CustomerUpdateDTO.class).create();
+        Customer updatedCustomer = CustomerFactory.createDefaultCustomer(defaultId);
+
+        when(customerRepository.findById(defaultId)).thenReturn(Optional.of(defaultCustomer));
+        when(customerRepository.save(any(Customer.class))).thenReturn(updatedCustomer);
+
+        CustomerResponseDTO sut = customerService.update(defaultId, updateDTO);
+
+        assertThat(sut)
+                .isNotNull()
+                .extracting(
+                        CustomerResponseDTO::id,
+                        CustomerResponseDTO::name,
+                        CustomerResponseDTO::orders
+                )
+                .containsExactly(
+                        updatedCustomer.getId(),
+                        updatedCustomer.getName(),
+                        updatedCustomer.getOrders()
+                );
+
+        verify(customerRepository).findById(defaultId);
+        verify(customerRepository).save(any(Customer.class));
+        verifyNoMoreInteractions(customerRepository);
+    }
+
+    @Test
+    void updateCustomer_shouldThrowException_whenIdDoNotExist() {
+        CustomerUpdateDTO updateDTO = Instancio.of(CustomerUpdateDTO.class).create();
+
+        when(customerRepository.findById(nonExistingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> customerService.update(nonExistingId, updateDTO))
                 .isInstanceOf(CustomerNotFoundException.class);
 
         verify(customerRepository).findById(nonExistingId);
